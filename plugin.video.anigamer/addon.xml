@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.anigamer" name="Bahamut Anime Player" version="0.1" provider-name="YWJamesLin">
+	<requires>
+		<import addon="xbmc.python" version="2.14.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="addon.py">
+		<provides>video</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Bahamut Anime Player</summary>
+		<summary lang="zh_TW">巴哈姆特動畫瘋播放助手</summary>
+		<description lang="en">This addon is Taiwan Only</description>
+		<description lang="zh_TW">在kodi上看動畫瘋，此附加元件限購買動畫瘋去廣告功能者使用，並且安裝後請先在設定中指定帳號密碼</description>
+		<license>MIT License</license>
+		<email>ywjameslin@gmail.com</email>
+	</extension>
+</addon>
