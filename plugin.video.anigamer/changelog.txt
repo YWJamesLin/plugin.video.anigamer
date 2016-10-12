@@ -1,1 +1,2 @@
-0.1 Close test with list_all and list_favorite
+0.1  (2016.10.12)
+- Initial version with list_all_anime and list_favorite_anime

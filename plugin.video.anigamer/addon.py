@@ -23,7 +23,7 @@ __url__ = sys.argv[0]
 __handle__ = int (sys.argv[1])
 
 # Check temp dir. exists
-tempDir = os.path.dirname (__file__) + '/../../temp/plugin.video.anigamer'
+tempDir = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile')).decode('utf-8')
 if not os.path.isdir (tempDir) :
     os.makedirs (tempDir)
 
@@ -223,7 +223,7 @@ class GamerAction () :
 
         result = self.sessionAgent.get (self.animeSite + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID)
         jsonData = result.json ()
-        src = jsonData ['src']
+        src = "https:" + jsonData ['src']
 
         result = self.sessionAgent.get (src)
         spstr = result.text.split ()
