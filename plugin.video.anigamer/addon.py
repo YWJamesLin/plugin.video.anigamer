@@ -125,6 +125,11 @@ class GamerAction () :
         url = '{0}?action=list_favor'.format (__url__)
         thisList.append ((url, favor_item, True))
 
+
+        logout_item = xbmcgui.ListItem (label = __language__ (33003))
+        url = '{0}?action=logout'.format (__url__)
+        thisList.append ((url, logout_item, True))
+
         xbmcplugin.addDirectoryItems (__handle__, thisList, len (thisList))
         xbmcplugin.endOfDirectory (__handle__)
 
@@ -223,12 +228,20 @@ class GamerAction () :
 
         result = self.sessionAgent.get (self.animeSite + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID)
         jsonData = result.json ()
-        src = "https:" + jsonData ['src']
+        src = re.sub(r"([a-zA-Z]+:)?//", "", jsonData ['src'])
+        src = "https://" + src
 
         result = self.sessionAgent.get (src)
         spstr = result.text.split ()
         newsrc = re.sub (r"\/index.+", "", src)
         xbmc.Player (xbmc.PLAYER_CORE_MPLAYER).play (newsrc + '/' + spstr[-1])
+
+    def logout (self) :
+        __language__ = self.this_addon.getLocalizedString
+
+        dialog = xbmcgui.Dialog ()
+        if dialog.yesno (__language__ (33003), __language__ (33012)) :
+            os.remove (tempDir + '/cookie')
 
 def router (paramstring, action):
     if action.check_login () == False :
@@ -245,6 +258,8 @@ def router (paramstring, action):
             action.anime_huei (params['sn'])
         elif params ['action'] == 'play' :
             action.play (params['sn'])
+        elif params ['action'] == 'logout' :
+            action.logout ()
     else :
         action.list_main ()
 
