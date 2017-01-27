@@ -6,6 +6,8 @@
 
 import os
 import sys
+from datetime import datetime
+import math
 
 import xbmcaddon
 import xbmcplugin
@@ -66,12 +68,21 @@ class GamerAction () :
                 self.sessionAgent.cookies = cookies
                 f.close ()
 
-                # Check this session
-                result = self.sessionAgent.get (self.authSite + '/login.php', allow_redirects = False)
-                if result.status_code == 302 :
-                    return True
-                else :
-                    return False
+            self.headers = {
+                        'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
+                        'origin' : self.animeSite
+            }
+
+            t = int(math.floor(((datetime.today()-datetime.fromtimestamp(0)).total_seconds()) * 1000 + 1))
+            self.sessionAgent.get ("https://www.gamer.com.tw/ajax/notify.php?a=1&time={0}".format (t), headers = {
+                'user-agent' : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
+                'referer' : "https://www.gamer.com.tw"
+                })
+            with open (tempDir + '/cookie', 'w+') as f :
+                pickle.dump (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies), f)
+                f.close ()
+
+            return True
         else :
             return False
 
@@ -79,20 +90,20 @@ class GamerAction () :
     def login (self) :
         # get captcha image content
         self.sessionAgent = requests.session ()
-        result = self.sessionAgent.get (self.authSite + '/login.php')
-        soup = BS (result.content.decode ('utf-8'), 'html.parser')
-        imagesrc = soup.find ('img', { 'id' : 'captchaImg' }) ['src']
-        result = self.sessionAgent.get (self.authSite + '/' + imagesrc)
+        #result = self.sessionAgent.get (self.authSite + '/login.php')
+        #soup = BS (result.content.decode ('utf-8'), 'html.parser')
+        #imagesrc = soup.find ('img', { 'id' : 'captchaImg' }) ['src']
+        #result = self.sessionAgent.get (self.authSite + '/' + imagesrc)
 
         # save captcha image
-        self.fptr = open (tempDir + '/captcha.jpg', 'w+b')
-        self.fptr.write (result.content)
-        self.fptr.close ()
+        #self.fptr = open (tempDir + '/captcha.jpg', 'w+b')
+        #self.fptr.write (result.content)
+        #self.fptr.close ()
 
         # get captcha input string
-        dialog = CaptchaInputDialog (tempDir + '/captcha.jpg')
-        captchaCode = dialog.get () or ""
-        del dialog
+        #dialog = CaptchaInputDialog (tempDir + '/captcha.jpg')
+        #captchaCode = dialog.get () or ""
+        #del dialog
 
         # combine userData and captcha code to on-post data
         data = {
@@ -100,13 +111,14 @@ class GamerAction () :
                 'getFrom' : 'http://www.gamer.com.tw',
                 'uidh' : self.this_addon.getSetting ('username'),
                 'passwdh' : self.this_addon.getSetting ('password'),
-                'kpwd' : captchaCode,
+               #'kpwd' : captchaCode,
                 'saveid' : 'F',
                 'autoLogin' : 'T'
                 }
 
         # Post Data and save session
-        result = self.sessionAgent.post (self.authSite + '/doLogin.php', data)
+        #self.sessionAgent.post ()
+        #result = self.sessionAgent.post (, data)
         with open (tempDir + '/cookie', 'w+') as f :
             pickle.dump (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies), f)
             f.close ()
@@ -139,7 +151,7 @@ class GamerAction () :
 
         thisList = []
 
-        result = self.sessionAgent.get (self.animeSite + '/animeList.php', params = { 'page' : page, 'c' : '0','sort' : '0' })
+        result = self.sessionAgent.get (self.animeSite + '/animeList.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
         soup = BS (result.content.decode ('utf-8'), 'html.parser')
         anime_list = soup.find ('ul', {'class':'anime_list'})
 
@@ -166,7 +178,7 @@ class GamerAction () :
 
     # list favorite animes
     def list_favor (self) :
-        result = self.sessionAgent.get (self.animeSite + '/mygather.php')
+        result = self.sessionAgent.get (self.animeSite + '/mygather.php', headers = self.headers)
         soup = BS (result.content.decode ('utf-8'), 'html.parser')
         anime_list = soup.find ('ul', { 'class' : 'anime_list' })
 
@@ -189,7 +201,7 @@ class GamerAction () :
 
     # list vol.
     def anime_huei (self, sn) :
-        result = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn)
+        result = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, headers = self.headers)
         soup = BS (result.content.decode ('utf-8'), 'html.parser')
 
         # get anime title
@@ -200,7 +212,7 @@ class GamerAction () :
         thisList = []
         # handle if has no vol. list
         if anime_list is None :
-            singleResult = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, allow_redirects = False)
+            singleResult = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, allow_redirects = False, headers = self.headers)
             newsn = singleResult.headers ['Location']
             newsn = re.sub (r".+\?sn=", "", newsn)
             list_item = xbmcgui.ListItem (label = title)
@@ -222,11 +234,11 @@ class GamerAction () :
 
     # create video link and play on kodi
     def play (self, sn) :
-        result = self.sessionAgent.get (self.animeSite + '/ajax/getdeviceid.php')
+        result = self.sessionAgent.get (self.animeSite + '/ajax/getdeviceid.php', headers = self.headers)
         jsonData = result.json ()
         deviceID = jsonData ['deviceid']
 
-        result = self.sessionAgent.get (self.animeSite + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID)
+        result = self.sessionAgent.get (self.animeSite + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID, headers = self.headers)
         jsonData = result.json ()
         src = re.sub(r"([a-zA-Z]+:)?//", "", jsonData ['src'])
         src = "https://" + src
