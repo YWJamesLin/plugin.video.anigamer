@@ -246,7 +246,7 @@ class GamerAction () :
         result = self.sessionAgent.get (src)
         spstr = result.text.split ()
         newsrc = re.sub (r"\/index.+", "", src)
-        xbmc.Player (xbmc.PLAYER_CORE_MPLAYER).play (newsrc + '/' + spstr[-1])
+        xbmc.Player ().play (newsrc + '/' + spstr[-1])
 
     def logout (self) :
         __language__ = self.this_addon.getLocalizedString
