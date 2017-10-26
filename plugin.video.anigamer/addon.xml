@@ -11,8 +11,8 @@
 		<summary lang="en">Bahamut Anime Player</summary>
 		<summary lang="zh_TW">巴哈姆特動畫瘋播放助手</summary>
 		<description lang="en">This addon is Taiwan Only</description>
-		<description lang="zh_TW">在kodi上看動畫瘋，此附加元件限購買動畫瘋去廣告功能者使用，並且安裝後請先在設定中指定帳號密碼</description>
-		<license>MIT License</license>
+		<description lang="zh_TW">在kodi上看動畫瘋，此附加元件限購買動畫瘋去廣告功能者使用</description>
+                <license>GPLv2 License</license>
 		<email>ywjameslin@gmail.com</email>
 	</extension>
 </addon>

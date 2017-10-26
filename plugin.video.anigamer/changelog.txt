@@ -1,2 +1,7 @@
+0.2  (2017.10.26)
+- Add amime thumb
+- Remove login feature (Issue #2)
+- Add anime play title
+- Prepare for Refactoring
 0.1  (2016.10.12)
 - Initial version with list_all_anime and list_favorite_anime
