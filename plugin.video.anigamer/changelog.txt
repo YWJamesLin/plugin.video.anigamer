@@ -1,3 +1,5 @@
+0.25 (2018.07.22)
+- Add queue feature, just select 'queue' to queue animation, now can at most queue 3hr long once. Length  will be changed due to policy of CDN provider of bahamut. The string 'queue' would be i18n later.
 0.2  (2017.10.26)
 - Add amime thumb
 - Remove login feature (Issue #2)

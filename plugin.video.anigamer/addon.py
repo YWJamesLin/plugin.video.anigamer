@@ -227,8 +227,11 @@ class GamerAction () :
                     singleResult = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, allow_redirects = False, headers = self.headers)
                     newsn = singleResult.headers ['Location']
                     newsn = re.sub (r".+\?sn=", "", newsn)
-                    list_item = xbmcgui.ListItem (label = title)
                     url = "{0}?action=play&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
+                    url = "{0}?action=queue&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
+                    list_item = xbmcgui.ListItem (label = title, path = url)
+                    list_item.setInfo ('video', {'title': title, 'genre': 'Animation', 'mediatype': 'video'})
+                    list_item.addContextMenuItems([('queue', 'RunPlugin({0})'.format(queueUrl))])
                     thisList.append ((url, list_item, False))
                     break
                 else :
@@ -239,8 +242,11 @@ class GamerAction () :
                     ref = anime_item.a ['href']
                     sn = re.sub (r"\?sn=", "", ref)
                     name = title + " " + anime_item.a.text
-                    list_item = xbmcgui.ListItem (label = name)
                     url = "{0}?action=play&sn={1}&name={2}".format (__url__, sn, name.encode ('utf-8'))
+                    queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, sn, name.encode ('utf-8'))
+                    list_item = xbmcgui.ListItem (label = name, path = url)
+                    list_item.setInfo ('video', {'title': name, 'genre': 'Animation', 'mediatype': 'video'})
+                    list_item.addContextMenuItems([('queue', 'RunPlugin({0})'.format(queueUrl))])
                     thisList.append ((url, list_item, False))
         xbmcplugin.addDirectoryItems (__handle__, thisList, len (thisList))
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_NONE)
@@ -262,12 +268,25 @@ class GamerAction () :
         spstr = result.text.split ()
         newsrc = re.sub (r"\/index.+", "", src)
         thisAnime = xbmcgui.ListItem (name)
-        thisAnime.setInfo ('video', {'Title': name, 'Genre': 'Animation'})
+        thisAnime.setInfo ('video', {'title': name, 'genre': 'Animation'})
         xbmc.Player ().play (newsrc + '/' + spstr[-1], thisAnime)
 
-    def queue (self, url, name) :
-        queued = xbmcgui.ListItem(name)
-        xbmc.PlayList(1).add (url, queued);
+    def queue (self, sn, name) :
+        result = self.sessionAgent.get (self.animeSite + '/ajax/getdeviceid.php', headers = self.headers)
+        jsonData = result.json ()
+        deviceID = jsonData ['deviceid']
+
+        result = self.sessionAgent.get (self.animeSite + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID, headers = self.headers)
+        jsonData = result.json ()
+        src = re.sub(r"([a-zA-Z]+:)?//", "", jsonData ['src'])
+        src = "https://" + src
+
+        result = self.sessionAgent.get (src)
+        spstr = result.text.split ()
+        newsrc = (re.sub (r"\/index.+", "", src)) + '/' + spstr[-1]
+        thisAnime = xbmcgui.ListItem (label = name, path = newsrc)
+        thisAnime.setInfo ('video', {'title': name, 'genre': 'Animation'})
+        xbmc.PlayList(1).add (newsrc, thisAnime);
 
 def router (paramstring, action):
     if action.check_login () == False :
@@ -284,6 +303,8 @@ def router (paramstring, action):
             action.anime_huei (params ['sn'])
         elif params ['action'] == 'play' :
             action.play (params['sn'], params['name'].decode('utf-8'))
+        elif params ['action'] == 'queue' :
+            action.queue (params['sn'], params['name'].decode('utf-8'))
     else :
         action.list_main ()
 
