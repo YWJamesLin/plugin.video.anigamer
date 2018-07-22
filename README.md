@@ -5,11 +5,7 @@ Bahamut anime player addon of kodi
 在Kodi上看動畫瘋，此附加元件限購買動畫瘋去廣告功能者使用
 
 ## Requirements
-python2 plugins :
-  requests
-  bs4
-  pickle
-  urlparse
+None
 
 ## Usage :
 Just
@@ -17,6 +13,8 @@ Just
 zip -r plugin_video_anigamer.zip ./plugin.video.anigamer
 ```
 and install this addon package on kodi.
+### Hint
+just zip the directory `plugin.video.anigamer` and install the archive.
 
 ## Issue or todo
 - 巴哈改用reCaptcha驗證耶，我該怎麼做？
