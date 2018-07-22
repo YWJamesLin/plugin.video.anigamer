@@ -30,6 +30,27 @@ tempDir = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile')).decode('
 if not os.path.isdir (tempDir) :
     os.makedirs (tempDir)
 
+# Captcha code input dialog
+class CaptchaInputDialog (xbmcgui.WindowDialog) :
+    def __init__ (self, captchaPath) :
+        self.img = xbmcgui.ControlImage (0, 0, 300, 100, captchaPath)
+        self.addControl (self.img)
+        self.kbd = xbmc.Keyboard ()
+
+    def __del__ (self) :
+        self.removeControl (self.img)
+
+    # show dialog to input and get inputed captcha code
+    def get (self) :
+        self.show ()
+        self.kbd.doModal ()
+        if (self.kbd.isConfirmed ()) :
+            text = self.kbd.getText ()
+            self.close ()
+            return text
+        self.close ()
+        return False
+
 # Class to handle bahamut login, animate data and play video
 class GamerAction () :
     def __init__(self) :
@@ -66,6 +87,43 @@ class GamerAction () :
         else :
             return False
 
+    # Login to Bahamut
+    def login (self) :
+        # get captcha image content
+        self.sessionAgent = requests.session ()
+        #result = self.sessionAgent.get (self.authSite + '/login.php')
+        #soup = BS (result.content.decode ('utf-8'), 'html.parser')
+        #imagesrc = soup.find ('img', { 'id' : 'captchaImg' }) ['src']
+        #result = self.sessionAgent.get (self.authSite + '/' + imagesrc)
+
+        # save captcha image
+        #self.fptr = open (tempDir + '/captcha.jpg', 'w+b')
+        #self.fptr.write (result.content)
+        #self.fptr.close ()
+
+        # get captcha input string
+        #dialog = CaptchaInputDialog (tempDir + '/captcha.jpg')
+        #captchaCode = dialog.get () or ""
+        #del dialog
+
+        # combine userData and captcha code to on-post data
+        data = {
+                'onlogin' : '0',
+                'getFrom' : 'http://www.gamer.com.tw',
+                'uidh' : self.this_addon.getSetting ('username'),
+                'passwdh' : self.this_addon.getSetting ('password'),
+               #'kpwd' : captchaCode,
+                'saveid' : 'F',
+                'autoLogin' : 'T'
+                }
+
+        # Post Data and save session
+        #self.sessionAgent.post ()
+        #result = self.sessionAgent.post (, data)
+        with open (tempDir + '/cookie', 'w+') as f :
+            pickle.dump (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies), f)
+            f.close ()
+
     # show main menu
     def list_main (self) :
         __language__ = self.this_addon.getLocalizedString
@@ -77,7 +135,7 @@ class GamerAction () :
         thisList.append ((url, all_item, True))
 
         favor_item = xbmcgui.ListItem (label = __language__ (33002))
-        url = '{0}?action=list_favor'.format (__url__)
+        url = '{0}?action=list_favor&page=1'.format (__url__)
         thisList.append ((url, favor_item, True))
 
         xbmcplugin.addDirectoryItems (__handle__, thisList, len (thisList))
@@ -118,24 +176,33 @@ class GamerAction () :
         xbmcplugin.endOfDirectory (__handle__)
 
     # list favorite animes
-    def list_favor (self) :
-        result = self.sessionAgent.get (self.animeSite + '/mygather.php', headers = self.headers)
-        soup = BS (result.content.decode ('utf-8'), 'html.parser')
-        anime_list = soup.find ('ul', { 'class' : 'anime_list' })
+    def list_favor (self, page) :
+        __language__ = self.this_addon.getLocalizedString
+
 
         thisList = []
 
+        result = self.sessionAgent.get (self.animeSite + '/mygather.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
+        soup = BS (result.content.decode ('utf-8'), 'html.parser')
+        anime_list = soup.find ('ul', { 'class' : 'anime_list' })
+
         # create anime list
-        for anime_item in anime_list.find_all ('li') :
-            nameBlock = anime_item.find ('div', { 'class' : 'info' })
-            picBlock = anime_item.find ('div', { 'class' : 'pic lazyload' })
-            name = nameBlock.b.text
-            pic = picBlock['data-bg']
-            ref = anime_item.a ['href']
-            sn = re.sub (r"a.+sn=", "", ref)
-            list_item = xbmcgui.ListItem (label = name, iconImage = pic)
-            url = "{0}?action=anime_huei&sn={1}".format (__url__, sn)
-            thisList.append ((url, list_item, True))
+        if anime_list is not None :
+            for anime_item in anime_list.find_all ('li') :
+                nameBlock = anime_item.find ('div', { 'class' : 'info' })
+                picBlock = anime_item.find ('div', { 'class' : 'pic lazyload' })
+                name = nameBlock.b.text
+                pic = picBlock['data-bg']
+                ref = anime_item.a ['href']
+                sn = re.sub (r"a.+sn=", "", ref)
+                list_item = xbmcgui.ListItem (label = name, iconImage = pic)
+                url = "{0}?action=anime_huei&sn={1}".format (__url__, sn)
+                thisList.append ((url, list_item, True))
+
+            # create nextpage item
+            nextpage_item = xbmcgui.ListItem (label = __language__ (33011))
+            url = "{0}?action=list_favor&page={1}".format (__url__, int (page) + 1)
+            thisList.append ((url, nextpage_item, True))
 
         xbmcplugin.addDirectoryItems (__handle__, thisList, len (thisList))
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_NONE)
@@ -151,25 +218,30 @@ class GamerAction () :
         title = soup.head.title.text
         title = re.sub(r"(\[[0-9]+\])? - .+", "", title)
 
-        anime_list = soup.find ('ul', { 'id' : 'vul0_000' })
         thisList = []
-        # handle if has no vol. list
-        if anime_list is None :
-            singleResult = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, allow_redirects = False, headers = self.headers)
-            newsn = singleResult.headers ['Location']
-            newsn = re.sub (r".+\?sn=", "", newsn)
-            list_item = xbmcgui.ListItem (label = title)
-            url = "{0}?action=play&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
-            thisList.append ((url, list_item, False))
-        # create vol. list
-        else :
-            for anime_item in anime_list.find_all ('li') :
-                ref = anime_item.a ['href']
-                sn = re.sub (r"\?sn=", "", ref)
-                name = title + " " + anime_item.a.text
-                list_item = xbmcgui.ListItem (label = name)
-                url = "{0}?action=play&sn={1}&name={2}".format (__url__, sn, name.encode ('utf-8'))
-                thisList.append ((url, list_item, False))
+        for i in range (10) :
+            anime_list = soup.find ('ul', { 'id' : 'vul0_00' + str(i) })
+            # handle if has no vol. list
+            if anime_list is None :
+                if i == 0 :
+                    singleResult = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, allow_redirects = False, headers = self.headers)
+                    newsn = singleResult.headers ['Location']
+                    newsn = re.sub (r".+\?sn=", "", newsn)
+                    list_item = xbmcgui.ListItem (label = title)
+                    url = "{0}?action=play&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
+                    thisList.append ((url, list_item, False))
+                    break
+                else :
+                    continue
+            # create vol. list
+            else :
+                for anime_item in anime_list.find_all ('li') :
+                    ref = anime_item.a ['href']
+                    sn = re.sub (r"\?sn=", "", ref)
+                    name = title + " " + anime_item.a.text
+                    list_item = xbmcgui.ListItem (label = name)
+                    url = "{0}?action=play&sn={1}&name={2}".format (__url__, sn, name.encode ('utf-8'))
+                    thisList.append ((url, list_item, False))
         xbmcplugin.addDirectoryItems (__handle__, thisList, len (thisList))
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_NONE)
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
@@ -199,15 +271,17 @@ class GamerAction () :
 
 def router (paramstring, action):
     if action.check_login () == False :
+        action.login ()
+    if action.check_login () == False :
         quit ()
     params = dict (parse_qsl (paramstring[1:]))
     if params :
         if params ['action'] == 'list_all' :
             action.list_all (params ['page'])
         elif params ['action'] == 'list_favor' :
-            action.list_favor ()
+            action.list_favor (params ['page'])
         elif params ['action'] == 'anime_huei' :
-            action.anime_huei (params['sn'])
+            action.anime_huei (params ['sn'])
         elif params ['action'] == 'play' :
             action.play (params['sn'], params['name'].decode('utf-8'))
     else :
