@@ -12,9 +12,21 @@ msgstr ""
 "Language: zh_TW\n"
 "Plural-Forms: \n"
 
-msgctxt "#32001"
-msgid "gamer_info"
-msgstr "巴哈姆特使用者資訊"
+msgctxt "#30001"
+msgid "Add to Favorite"
+msgstr "加入我的動畫"
+
+msgctxt "#30002"
+msgid "Remove from Favorite"
+msgstr "從我的動畫移除"
+
+msgctxt "#30003"
+msgid "Add to Queue"
+msgstr "加入當前播放清單"
+
+msgctxt "#30004"
+msgid "next"
+msgstr "下一頁"
 
 msgctxt "#33001"
 msgid "all_animes"
@@ -23,7 +35,3 @@ msgstr "所有動畫"
 msgctxt "#33002"
 msgid "my_favorite"
 msgstr "我的最愛"
-
-msgctxt "#33011"
-msgid "next"
-msgstr "下一頁"

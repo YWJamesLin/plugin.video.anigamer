@@ -7,6 +7,7 @@
 import os
 import sys
 from datetime import datetime
+import time
 import math
 
 import xbmcaddon
@@ -74,6 +75,12 @@ class GamerAction () :
                         'origin' : self.animeSite
             }
 
+            self.xhrHeaders = {
+                        'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+                        'origin' : self.animeSite,
+                        'X-Requested-With': 'XMLHttpRequest',
+            }
+
             t = int(math.floor(((datetime.today()-datetime.fromtimestamp(0)).total_seconds()) * 1000 + 1))
             self.sessionAgent.get ("https://www.gamer.com.tw/ajax/notify.php?a=1&time={0}".format (t), headers = {
                 'user-agent' : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
@@ -86,43 +93,6 @@ class GamerAction () :
             return True
         else :
             return False
-
-    # Login to Bahamut
-    def login (self) :
-        # get captcha image content
-        self.sessionAgent = requests.session ()
-        #result = self.sessionAgent.get (self.authSite + '/login.php')
-        #soup = BS (result.content.decode ('utf-8'), 'html.parser')
-        #imagesrc = soup.find ('img', { 'id' : 'captchaImg' }) ['src']
-        #result = self.sessionAgent.get (self.authSite + '/' + imagesrc)
-
-        # save captcha image
-        #self.fptr = open (tempDir + '/captcha.jpg', 'w+b')
-        #self.fptr.write (result.content)
-        #self.fptr.close ()
-
-        # get captcha input string
-        #dialog = CaptchaInputDialog (tempDir + '/captcha.jpg')
-        #captchaCode = dialog.get () or ""
-        #del dialog
-
-        # combine userData and captcha code to on-post data
-        data = {
-                'onlogin' : '0',
-                'getFrom' : 'http://www.gamer.com.tw',
-                'uidh' : self.this_addon.getSetting ('username'),
-                'passwdh' : self.this_addon.getSetting ('password'),
-               #'kpwd' : captchaCode,
-                'saveid' : 'F',
-                'autoLogin' : 'T'
-                }
-
-        # Post Data and save session
-        #self.sessionAgent.post ()
-        #result = self.sessionAgent.post (, data)
-        with open (tempDir + '/cookie', 'w+') as f :
-            pickle.dump (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies), f)
-            f.close ()
 
     # show main menu
     def list_main (self) :
@@ -151,11 +121,11 @@ class GamerAction () :
         soup = BS (result.content.decode ('utf-8'), 'html.parser')
         anime_list = soup.find ('ul', {'class':'anime_list'})
 
-
         # create anime list
         for anime_item in anime_list.find_all ('li') :
             picBlock = anime_item.find ('div', { 'class' : 'pic lazyload' })
             nameBlock = anime_item.find ('div', { 'class' : 'info' })
+            inFavoriteDOM = anime_item.find ('div', { 'class' : 'order yes' })
             name = nameBlock.b.text
             pic = picBlock['data-bg']
             ref = anime_item.a ['href']
@@ -163,10 +133,17 @@ class GamerAction () :
             list_item = xbmcgui.ListItem (label = name)
             list_item.setArt ({'thumb': pic})
             url = "{0}?action=anime_huei&sn={1}".format (__url__, sn)
+            if inFavoriteDOM is None :
+                addFavoriteUrl = "{0}?action=add_to_favorite&sn={1}".format (__url__, sn)
+                list_item.addContextMenuItems([(__language__ (30001), 'RunPlugin({0})'.format(addFavoriteUrl))])
+            else :
+                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}".format (__url__, sn)
+                list_item.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
+
             thisList.append ((url, list_item, True))
 
         # create nextpage item
-        nextpage_item = xbmcgui.ListItem (label = __language__ (33011))
+        nextpage_item = xbmcgui.ListItem (label = __language__ (30004))
         url = "{0}?action=list_all&page={1}".format (__url__, int (page) + 1)
         thisList.append ((url, nextpage_item, True))
 
@@ -179,7 +156,6 @@ class GamerAction () :
     def list_favor (self, page) :
         __language__ = self.this_addon.getLocalizedString
 
-
         thisList = []
 
         result = self.sessionAgent.get (self.animeSite + '/mygather.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
@@ -189,18 +165,21 @@ class GamerAction () :
         # create anime list
         if anime_list is not None :
             for anime_item in anime_list.find_all ('li') :
-                nameBlock = anime_item.find ('div', { 'class' : 'info' })
                 picBlock = anime_item.find ('div', { 'class' : 'pic lazyload' })
+                nameBlock = anime_item.find ('div', { 'class' : 'info' })
                 name = nameBlock.b.text
                 pic = picBlock['data-bg']
                 ref = anime_item.a ['href']
                 sn = re.sub (r"a.+sn=", "", ref)
                 list_item = xbmcgui.ListItem (label = name, iconImage = pic)
+                list_item.setArt ({'thumb': pic})
                 url = "{0}?action=anime_huei&sn={1}".format (__url__, sn)
+                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}".format (__url__, sn)
+                list_item.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
                 thisList.append ((url, list_item, True))
 
             # create nextpage item
-            nextpage_item = xbmcgui.ListItem (label = __language__ (33011))
+            nextpage_item = xbmcgui.ListItem (label = __language__ (30004))
             url = "{0}?action=list_favor&page={1}".format (__url__, int (page) + 1)
             thisList.append ((url, nextpage_item, True))
 
@@ -211,6 +190,8 @@ class GamerAction () :
 
     # list vol.
     def anime_huei (self, sn) :
+        __language__ = self.this_addon.getLocalizedString
+
         result = self.sessionAgent.get (self.animeSite + '/animeRef.php?sn=' + sn, headers = self.headers)
         soup = BS (result.content.decode ('utf-8'), 'html.parser')
 
@@ -228,10 +209,10 @@ class GamerAction () :
                     newsn = singleResult.headers ['Location']
                     newsn = re.sub (r".+\?sn=", "", newsn)
                     url = "{0}?action=play&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
-                    url = "{0}?action=queue&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
+                    queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, newsn, title.encode('utf-8'))
                     list_item = xbmcgui.ListItem (label = title, path = url)
-                    list_item.setInfo ('video', {'title': title, 'genre': 'Animation', 'mediatype': 'video'})
-                    list_item.addContextMenuItems([('queue', 'RunPlugin({0})'.format(queueUrl))])
+                    list_item.setInfo ('video', {'title': title, 'genre': 'Animation', 'mediatype': 'movie'})
+                    list_item.addContextMenuItems([(__language__ (30003), 'RunPlugin({0})'.format(queueUrl))])
                     thisList.append ((url, list_item, False))
                     break
                 else :
@@ -246,7 +227,7 @@ class GamerAction () :
                     queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, sn, name.encode ('utf-8'))
                     list_item = xbmcgui.ListItem (label = name, path = url)
                     list_item.setInfo ('video', {'title': name, 'genre': 'Animation', 'mediatype': 'video'})
-                    list_item.addContextMenuItems([('queue', 'RunPlugin({0})'.format(queueUrl))])
+                    list_item.addContextMenuItems([(__language__ (30003), 'RunPlugin({0})'.format(queueUrl))])
                     thisList.append ((url, list_item, False))
         xbmcplugin.addDirectoryItems (__handle__, thisList, len (thisList))
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_NONE)
@@ -286,11 +267,35 @@ class GamerAction () :
         newsrc = (re.sub (r"\/index.+", "", src)) + '/' + spstr[-1]
         thisAnime = xbmcgui.ListItem (label = name, path = newsrc)
         thisAnime.setInfo ('video', {'title': name, 'genre': 'Animation'})
-        xbmc.PlayList(1).add (newsrc, thisAnime);
+        xbmc.PlayList(1).add (newsrc, thisAnime)
+
+    def add_to_favorite (self, sn) :
+        thisHeaders = self.xhrHeaders.copy ()
+        thisHeaders.update ({
+            'Referer' : 'https://ani.gamer.com.tw/animeList.php',
+        })
+
+        result = self.sessionAgent.get (self.animeSite + '/ajax/want2play.php?s=' + sn, headers = thisHeaders)
+        xbmc.executebuiltin('Container.Refresh')
+
+    def remove_from_favorite (self, sn) :
+        thisHeaders = self.xhrHeaders.copy ()
+        thisHeaders.update ({
+            'Referer' : 'https://ani.gamer.com.tw/animeList.php',
+        })
+
+        result = self.sessionAgent.get (self.animeSite + '/ajax/getCSRFToken.php?_=' + str(int(time.time())), headers = thisHeaders)
+        token = result.text
+
+        data = {
+            's' : sn,
+            'token' : token,
+        }
+        result = self.sessionAgent.post (self.animeSite + '/ajax/delgather.php', data, headers = thisHeaders)
+
+        xbmc.executebuiltin('Container.Refresh')
 
 def router (paramstring, action):
-    if action.check_login () == False :
-        action.login ()
     if action.check_login () == False :
         quit ()
     params = dict (parse_qsl (paramstring[1:]))
@@ -305,6 +310,10 @@ def router (paramstring, action):
             action.play (params['sn'], params['name'].decode('utf-8'))
         elif params ['action'] == 'queue' :
             action.queue (params['sn'], params['name'].decode('utf-8'))
+        elif params ['action'] == 'add_to_favorite' :
+            action.add_to_favorite (params['sn'])
+        elif params ['action'] == 'remove_from_favorite' :
+            action.remove_from_favorite (params['sn'])
     else :
         action.list_main ()
 
