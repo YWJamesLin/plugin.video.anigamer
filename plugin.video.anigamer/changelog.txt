@@ -1,3 +1,8 @@
+0.3.1 (2018.10.21)
+- Refactored and decouple some components
+- Prepared to migrate to Python3
+- Fix some bugs because Hinet CDN changed its policy
+- Fix some bus on add_to_favorite
 0.3 (2018.10.21)
 - Add feature: add to favorite, remove from favorite
 - Complete I18N on each features
