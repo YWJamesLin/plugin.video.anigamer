@@ -121,21 +121,25 @@ class GamerSession () :
         for animeItem in animeGroup.find_all ('li') :
             imageBlock = animeItem.find ('div', { 'class' : 'pic lazyload' })
             nameBlock = animeItem.find ('div', { 'class' : 'info' })
-            inFavoriteBlock = animeItem.find ('div', { 'class' : 'order yes' })
+            FavoriteBlock = animeItem.find ('div', { 'class' : 'order' })
+            isFavoriteBlock = animeItem.find ('div', { 'class' : 'order yes' })
 
             if nameBlock is None:
                 continue
             name = nameBlock.b.text
             imageLink = imageBlock['data-bg']
             sn = re.sub (r"a.+sn=", "", animeItem.a['href'])
+            acgSnJS = FavoriteBlock['onclick']
+            acgSnJS = re.sub (r"a.+\(", "", acgSnJS)
+            acgSn = re.sub (r",.+", "", acgSnJS)
             menuItem = xbmcgui.ListItem (label = name)
             menuItem.setArt ({'thumb': imageLink})
             url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink.encode('utf-8'))
-            if inFavoriteBlock is not None :
-                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}".format (__url__, sn)
+            if isFavoriteBlock is not None :
+                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
                 menuItem.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
             else :
-                addToFavoriteUrl = "{0}?action=add_to_favorite&sn={1}".format (__url__, sn)
+                addToFavoriteUrl = "{0}?action=add_to_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
                 menuItem.addContextMenuItems([(__language__ (30001), 'RunPlugin({0})'.format(addToFavoriteUrl))])
             menuItems.append ((url, menuItem, True))
 
@@ -257,10 +261,10 @@ class GamerSession () :
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
         xbmcplugin.endOfDirectory (__handle__)
 
-    def addToFavorite (self, sn) :
+    def addToFavorite (self, sn, animeSn) :
         thisHeaders = self.xhrHeaders.copy ()
         thisHeaders.update ({
-            'Referer' : 'https://ani.gamer.com.tw/animeList.php',
+            'Referer' : 'https://ani.gamer.com.tw/',
         })
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/getCSRFToken.php?_=' + str(int(time.time())), headers = thisHeaders)
@@ -268,16 +272,17 @@ class GamerSession () :
 
         data = {
             's' : sn,
+            'animeSn' : animeSn,
             'token' : token,
         }
         result = self.sessionAgent.post (self.animeEndpointBase + '/ajax/want2play.php', data, headers = thisHeaders)
 
         xbmc.executebuiltin('Container.Refresh')
 
-    def removeFromFavorite (self, sn) :
+    def removeFromFavorite (self, sn, animeSn) :
         thisHeaders = self.xhrHeaders.copy ()
         thisHeaders.update ({
-            'Referer' : 'https://ani.gamer.com.tw/animeList.php',
+            'Referer' : 'https://ani.gamer.com.tw/',
         })
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/getCSRFToken.php?_=' + str(int(time.time())), headers = thisHeaders)
@@ -285,6 +290,7 @@ class GamerSession () :
 
         data = {
             's' : sn,
+            'animeSn' : animeSn,
             'token' : token,
         }
         result = self.sessionAgent.post (self.animeEndpointBase + '/ajax/delgather.php', data, headers = thisHeaders)
@@ -342,9 +348,9 @@ def router (paramString, session):
         elif action == 'anime_huei' :
             session.animeHuei (params ['sn'], params ['link'].decode('utf-8'))
         elif action == 'add_to_favorite' :
-            session.addToFavorite (params['sn'])
+            session.addToFavorite (params['sn'], params['animeSn'])
         elif action == 'remove_from_favorite' :
-            session.removeFromFavorite (params['sn'])
+            session.removeFromFavorite (params['sn'], params['animeSn'])
         elif action == 'play' :
             session.play (params['sn'], params['name'])
         elif action == 'queue' :

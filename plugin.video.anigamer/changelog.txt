@@ -1,4 +1,6 @@
-0.3.1 (2018.10.21)
+0.3.2 (2020.11.28)
+- Fix bug on add/remove from favorite
+0.3.1 (2019.05.12)
 - Refactored and decouple some components
 - Prepared to migrate to Python3
 - Fix some bugs because Hinet CDN changed its policy
