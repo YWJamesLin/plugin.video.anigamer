@@ -168,15 +168,19 @@ class GamerSession () :
             for animeItem in animeGroup.find_all ('li') :
                 imageBlock = animeItem.find ('div', { 'class' : 'pic lazyload' })
                 nameBlock = animeItem.find ('div', { 'class' : 'info' })
+                FavoriteBlock = animeItem.find ('div', { 'class' : 'order' })
 
                 name = nameBlock.b.text
                 imageLink = imageBlock['data-bg']
+                acgSnJS = FavoriteBlock['onclick']
+                acgSnJS = re.sub (r"a.+\(", "", acgSnJS)
+                acgSn = re.sub (r",.+", "", acgSnJS)
                 sn = re.sub (r"a.+sn=", "", animeItem.a['href'])
 
                 menuItem = xbmcgui.ListItem (label = name, iconImage = imageLink)
                 menuItem.setArt ({'thumb': imageLink})
                 url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink.encode('utf-8'))
-                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}".format (__url__, sn)
+                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
                 menuItem.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
                 menuItems.append ((url, menuItem, True))
 
