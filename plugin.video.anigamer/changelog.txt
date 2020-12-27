@@ -1,3 +1,5 @@
+0.3.3 (2020.12.27)
+- Update parser behavior due to changes on website
 0.3.2 (2020.11.28)
 - Fix bug on add/remove from favorite
 0.3.1 (2019.05.12)

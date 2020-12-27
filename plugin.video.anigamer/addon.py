@@ -115,20 +115,20 @@ class GamerSession () :
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/animeList.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
         soup = BS (result.content.decode('utf-8'), 'html.parser')
-        animeGroup = soup.find ('ul', {'class':'anime_list'})
+        animeGroup = soup.find ('div', {'class':'theme-list-block'})
 
-        # create anime list
-        for animeItem in animeGroup.find_all ('li') :
-            imageBlock = animeItem.find ('div', { 'class' : 'pic lazyload' })
-            nameBlock = animeItem.find ('div', { 'class' : 'info' })
-            FavoriteBlock = animeItem.find ('div', { 'class' : 'order' })
-            isFavoriteBlock = animeItem.find ('div', { 'class' : 'order yes' })
+        # Create anime list
+        for animeItem in animeGroup.find_all ('a', {'class': 'theme-list-main'}) :
+            imageBlock = animeItem.find ('img', { 'class' : 'theme-img lazyload' })
+            nameBlock = animeItem.find ('div', { 'class' : 'theme-info-block' })
+            FavoriteBlock = animeItem.find ('div', { 'class' : 'btn-favorite' })
+            isFavoriteBlock = animeItem.find ('div', { 'class' : 'btn-active' })
 
             if nameBlock is None:
                 continue
-            name = nameBlock.b.text
-            imageLink = imageBlock['data-bg']
-            sn = re.sub (r"a.+sn=", "", animeItem.a['href'])
+            name = nameBlock.p.text
+            imageLink = imageBlock['src']
+            sn = re.sub (r"a.+sn=", "", animeItem['href'])
             acgSnJS = FavoriteBlock['onclick']
             acgSnJS = re.sub (r"a.+\(", "", acgSnJS)
             acgSn = re.sub (r",.+", "", acgSnJS)
@@ -161,21 +161,21 @@ class GamerSession () :
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/mygather.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
         soup = BS (result.content.decode('utf-8'), 'html.parser')
-        animeGroup = soup.find ('ul', { 'class' : 'anime_list' })
+        animeGroup = soup.find ('div', {'class':'theme-list-block'})
 
         # Create anime list
         if animeGroup is not None :
-            for animeItem in animeGroup.find_all ('li') :
-                imageBlock = animeItem.find ('div', { 'class' : 'pic lazyload' })
-                nameBlock = animeItem.find ('div', { 'class' : 'info' })
-                FavoriteBlock = animeItem.find ('div', { 'class' : 'order' })
+            for animeItem in animeGroup.find_all ('a', {'class': 'theme-list-main'}) :
+                imageBlock = animeItem.find ('img', { 'class' : 'theme-img lazyload' })
+                nameBlock = animeItem.find ('div', { 'class' : 'theme-info-block' })
+                FavoriteBlock = animeItem.find ('div', { 'class' : 'btn-favorite' })
 
-                name = nameBlock.b.text
-                imageLink = imageBlock['data-bg']
+                name = nameBlock.p.text
+                imageLink = imageBlock['src']
                 acgSnJS = FavoriteBlock['onclick']
                 acgSnJS = re.sub (r"a.+\(", "", acgSnJS)
                 acgSn = re.sub (r",.+", "", acgSnJS)
-                sn = re.sub (r"a.+sn=", "", animeItem.a['href'])
+                sn = re.sub (r"a.+sn=", "", animeItem['href'])
 
                 menuItem = xbmcgui.ListItem (label = name, iconImage = imageLink)
                 menuItem.setArt ({'thumb': imageLink})
