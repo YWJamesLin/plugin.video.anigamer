@@ -117,12 +117,12 @@ class GamerSession () :
         soup = BS (result.content.decode('utf-8'), 'html.parser')
         animeGroup = soup.find ('div', {'class':'theme-list-block'})
 
-        # Create anime list
+        # create anime list
         for animeItem in animeGroup.find_all ('a', {'class': 'theme-list-main'}) :
             imageBlock = animeItem.find ('img', { 'class' : 'theme-img lazyload' })
             nameBlock = animeItem.find ('div', { 'class' : 'theme-info-block' })
             FavoriteBlock = animeItem.find ('div', { 'class' : 'btn-favorite' })
-            isFavoriteBlock = animeItem.find ('div', { 'class' : 'btn-active' })
+            isFavoriteBlock = animeItem.find ('div', { 'class' : 'btn-is-active' })
 
             if nameBlock is None:
                 continue
@@ -130,8 +130,8 @@ class GamerSession () :
             imageLink = imageBlock['src']
             sn = re.sub (r"a.+sn=", "", animeItem['href'])
             acgSnJS = FavoriteBlock['onclick']
-            acgSnJS = re.sub (r"a.+\(", "", acgSnJS)
-            acgSn = re.sub (r",.+", "", acgSnJS)
+            acgSnJS = re.sub (r",.+", "", acgSnJS)
+            acgSn = re.sub (r"a.+\(", "", acgSnJS)
             menuItem = xbmcgui.ListItem (label = name)
             menuItem.setArt ({'thumb': imageLink})
             url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink.encode('utf-8'))
@@ -173,8 +173,8 @@ class GamerSession () :
                 name = nameBlock.p.text
                 imageLink = imageBlock['src']
                 acgSnJS = FavoriteBlock['onclick']
-                acgSnJS = re.sub (r"a.+\(", "", acgSnJS)
-                acgSn = re.sub (r",.+", "", acgSnJS)
+                acgSnJS = re.sub (r",.+", "", acgSnJS)
+                acgSn = re.sub (r"a.+\(", "", acgSnJS)
                 sn = re.sub (r"a.+sn=", "", animeItem['href'])
 
                 menuItem = xbmcgui.ListItem (label = name, iconImage = imageLink)
