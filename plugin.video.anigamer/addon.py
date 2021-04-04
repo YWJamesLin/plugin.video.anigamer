@@ -13,11 +13,11 @@ import xbmcplugin
 import xbmcgui
 
 import re
-
 import requests
-import pickle
+import json
+
 from bs4 import BeautifulSoup as BS
-from urlparse import parse_qsl
+from urllib.parse import parse_qsl
 
 # Parse plugin metadata
 __url__ = sys.argv[0]
@@ -75,15 +75,18 @@ class GamerSession () :
     def refreshSession (self) :
         if os.path.isfile (self.storageDir + '/cookie') :
             with open (self.storageDir + '/cookie', 'r') as handle :
-                # Fetch saved session info
-                cookies = requests.utils.cookiejar_from_dict (pickle.load (handle))
+                # Fetch saved session infoq
+                content = handle.read()
+                cookies = requests.utils.cookiejar_from_dict (json.loads (content))
                 self.sessionAgent.cookies = cookies
                 handle.close ()
 
             t = int(math.floor(((datetime.today()-datetime.fromtimestamp(0)).total_seconds()) * 1000 + 1))
             self.sessionAgent.get (self.gamerEndpointBase + "/ajax/notify.php?a=1&time={0}".format (t), headers = self.updateSessionHeaders)
-            with open (self.storageDir + '/cookie', 'w+') as handle :
-                pickle.dump (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies), handle)
+
+            with open (self.storageDir + '/cookie', 'w') as handle :
+                cookieContent = json.dumps (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies))
+                handle.write (cookieContent)
                 handle.close ()
 
             return True
@@ -114,7 +117,7 @@ class GamerSession () :
         menuItems = []
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/animeList.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
-        soup = BS (result.content.decode('utf-8'), 'html.parser')
+        soup = BS (result.content, 'html.parser')
         animeGroup = soup.find ('div', {'class':'theme-list-block'})
 
         # create anime list
@@ -134,7 +137,7 @@ class GamerSession () :
             acgSn = re.sub (r"a.+\(", "", acgSnJS)
             menuItem = xbmcgui.ListItem (label = name)
             menuItem.setArt ({'thumb': imageLink})
-            url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink.encode('utf-8'))
+            url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink)
             if isFavoriteBlock is not None :
                 removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
                 menuItem.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
@@ -160,7 +163,7 @@ class GamerSession () :
         menuItems = []
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/mygather.php', params = { 'page' : page, 'c' : '0','sort' : '0' }, headers = self.headers)
-        soup = BS (result.content.decode('utf-8'), 'html.parser')
+        soup = BS (result.content, 'html.parser')
         animeGroup = soup.find ('div', {'class':'theme-list-block'})
 
         # Create anime list
@@ -177,9 +180,9 @@ class GamerSession () :
                 acgSn = re.sub (r"a.+\(", "", acgSnJS)
                 sn = re.sub (r"a.+sn=", "", animeItem['href'])
 
-                menuItem = xbmcgui.ListItem (label = name, iconImage = imageLink)
+                menuItem = xbmcgui.ListItem (label = name)
                 menuItem.setArt ({'thumb': imageLink})
-                url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink.encode('utf-8'))
+                url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink)
                 removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
                 menuItem.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
                 menuItems.append ((url, menuItem, True))
@@ -199,7 +202,7 @@ class GamerSession () :
         __language__ = self.thisAddon.getLocalizedString
 
         result = self.sessionAgent.get (self.animeEndpointBase + '/animeRef.php?sn=' + sn, headers = self.headers)
-        soup = BS (result.content.decode('utf-8'), 'html.parser')
+        soup = BS (result.content, 'html.parser')
 
         # Get anime title
         title = re.sub(r"(\[[0-9]+\])? - .+", "", soup.head.title.text)
@@ -210,8 +213,8 @@ class GamerSession () :
         if sectionField is None :
             result = self.sessionAgent.get (self.animeEndpointBase + '/animeRef.php?sn=' + sn, allow_redirects = False, headers = self.headers)
             newSn = re.sub (r".+\?sn=", "", result.headers['Location'])
-            url = "{0}?action=play&sn={1}&name={2}".format (__url__, newSn, title.encode('utf-8'))
-            queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, newSn, title.encode('utf-8'))
+            url = "{0}?action=play&sn={1}&name={2}".format (__url__, newSn, title)
+            queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, newSn, title)
             menuItem = xbmcgui.ListItem (label = title, path = url)
             menuItem.setInfo ('video', {
                 'title': title,
@@ -224,11 +227,11 @@ class GamerSession () :
         else :
             sectionGroup = sectionField.find_all ('ul')
             sectionLength = len (sectionGroup)
-            if sectionLength is 1 :
+            if sectionLength == 1 :
                 for section in sectionGroup :
                     for volumeItem in section.find_all ('li') :
                         sn = re.sub (r"\?sn=", "", volumeItem.a['href'])
-                        name = "{0} {1}".format (title.encode('utf-8'), volumeItem.a.text)
+                        name = "{0} {1}".format (title, volumeItem.a.text)
                         url = "{0}?action=play&sn={1}&name={2}".format (__url__, sn, name)
                         queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, sn, name)
                         menuItem = xbmcgui.ListItem (label = name, path = url)
@@ -247,7 +250,7 @@ class GamerSession () :
                     sectionName = sectionNameField.text
                     for volumeItem in section.find_all ('li') :
                         sn = re.sub (r"\?sn=", "", volumeItem.a['href'])
-                        name = "{0} {1} {2}".format (title.encode('utf-8'), sectionName.encode('utf-8'), volumeItem.a.text)
+                        name = "{0} {1} {2}".format (title, sectionName, volumeItem.a.text)
                         url = "{0}?action=play&sn={1}&name={2}".format (__url__, sn, name)
                         queueUrl = "{0}?action=queue&sn={1}&name={2}".format (__url__, sn, name)
                         menuItem = xbmcgui.ListItem (label = name, path = url)
@@ -350,7 +353,7 @@ def router (paramString, session):
         elif action == 'list_favor' :
             session.favoriteAnimes (params ['page'])
         elif action == 'anime_huei' :
-            session.animeHuei (params ['sn'], params ['link'].decode('utf-8'))
+            session.animeHuei (params ['sn'], params ['link'])
         elif action == 'add_to_favorite' :
             session.addToFavorite (params['sn'], params['animeSn'])
         elif action == 'remove_from_favorite' :
