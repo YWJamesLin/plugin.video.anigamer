@@ -1,6 +1,6 @@
 # plugin.video.anigamer
-Bahamut anime player addon of kodi written with python 3
-this version is generally for kodi version 19 or later
+- Bahamut anime player addon of kodi written with python 3
+- this version is generally for kodi version 19 or later
 
 # Kodi 巴哈姆特動畫瘋播放器插件
 在Kodi上看動畫瘋，此附加元件現在限購買動畫瘋去廣告功能者使用
