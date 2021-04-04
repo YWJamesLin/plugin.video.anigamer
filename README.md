@@ -1,4 +1,4 @@
-# plugin.video.anigamer.python3
+# plugin.video.anigamer
 Bahamut anime player addon of kodi written with python 3
 this version is generally for kodi version 19 or later
 
