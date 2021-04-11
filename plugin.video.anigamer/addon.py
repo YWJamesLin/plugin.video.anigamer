@@ -31,6 +31,7 @@ xbmcplugin.setContent (__handle__,'movies')
 class GamerSession () :
     animeEndpointBase = 'https://ani.gamer.com.tw'
     gamerEndpointBase = 'https://www.gamer.com.tw'
+    apiEndpointBase = 'https://api.gamer.com.tw'
 
     thisAddon = None
     headers = None
@@ -82,7 +83,7 @@ class GamerSession () :
                 handle.close ()
 
             t = int(math.floor(((datetime.today()-datetime.fromtimestamp(0)).total_seconds()) * 1000 + 1))
-            self.sessionAgent.get (self.gamerEndpointBase + "/ajax/notify.php?a=1&time={0}".format (t), headers = self.updateSessionHeaders)
+            self.sessionAgent.get (self.apiEndpointBase + "/ajax/common/notify_getnum.php?_={0}".format (t), headers = self.updateSessionHeaders)
 
             with open (self.storageDir + '/cookie', 'w') as handle :
                 cookieContent = json.dumps (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies))
