@@ -28,6 +28,30 @@ msgctxt "#30004"
 msgid "next"
 msgstr "下一頁"
 
+msgctxt "#31001"
+msgid "error"
+msgstr "錯誤"
+
+msgctxt "#32001"
+msgid "gamer_info"
+msgstr "巴哈姆特使用者資訊"
+
+msgctxt "#32002"
+msgid "setup_gamer_info"
+msgstr "請先在設定頁面設定要登入的帳號密碼"
+
+msgctxt "#32011"
+msgid "username"
+msgstr "帳號"
+
+msgctxt "#32012"
+msgid "password"
+msgstr "密碼"
+
+msgctxt "#32013"
+msgid "input_mfa_code"
+msgstr "請輸入二階段驗證碼"
+
 msgctxt "#33001"
 msgid "all_animes"
 msgstr "所有動畫"
@@ -35,3 +59,11 @@ msgstr "所有動畫"
 msgctxt "#33002"
 msgid "my_favorite"
 msgstr "我的最愛"
+
+msgctxt "#33003"
+msgid "logout"
+msgstr "登出"
+
+msgctxt "#33012"
+msgid "logoutConfirm"
+msgstr "請問是否真的要登出？"

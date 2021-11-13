@@ -11,6 +11,7 @@ import math
 import xbmcaddon
 import xbmcplugin
 import xbmcgui
+import xbmcvfs
 
 import re
 import requests
@@ -31,6 +32,7 @@ xbmcplugin.setContent (__handle__,'movies')
 class GamerSession () :
     animeEndpointBase = 'https://ani.gamer.com.tw'
     gamerEndpointBase = 'https://www.gamer.com.tw'
+    authEndpointBase = 'https://user.gamer.com.tw'
     apiEndpointBase = 'https://api.gamer.com.tw'
 
     thisAddon = None
@@ -52,19 +54,28 @@ class GamerSession () :
 
         # Create cookie storage directory
         self.headers = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
             'origin' : self.animeEndpointBase
         }
+        self.preAuthHeaders = {
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+        }
+        self.authHeaders = {
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+            'origin' : self.authEndpointBase,
+            'referer' : self.authEndpointBase + '/login.php',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
         self.updateSessionHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
             'referer' : self.gamerEndpointBase,
         }
         self.xhrHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
             'origin' : self.animeEndpointBase,
             'X-Requested-With': 'XMLHttpRequest',
         }
-        self.storageDir = xbmc.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
+        self.storageDir = xbmcvfs.translatePath(xbmcaddon.Addon().getAddonInfo('profile'))
         if not os.path.isdir (self.storageDir) :
             os.makedirs (self.storageDir)
         self.sessionAgent = requests.session ()
@@ -90,9 +101,64 @@ class GamerSession () :
                 handle.write (cookieContent)
                 handle.close ()
 
-            return True
+            # Validate this session
+            result = self.sessionAgent.get (self.authEndpointBase + '/login.php', allow_redirects = False, headers = self.preAuthHeaders)
+            if result.status_code == 302 :
+                return True
+            else :
+                return False
         else :
             return False
+
+    # Login to Bahamut
+    def login (self) :
+        __language__ = self.thisAddon.getLocalizedString
+
+        username = self.thisAddon.getSetting ('username')
+        password = self.thisAddon.getSetting ('password')
+
+        if username == '' or password == '':
+            dialog = xbmcgui.Dialog ()
+            dialog.ok (__language__ (31001), __language__ (32002))
+            return False
+
+        # Check whether this user need to use MFA Login or not
+        MFACode = ''
+        data = {
+            'userid' : username,
+        }
+        result = self.sessionAgent.post (self.apiEndpointBase + '/user/v1/login_precheck.php', data, headers = self.authHeaders)
+        loginCheckResult = result.json ()
+        if loginCheckResult['data']['status'] == 1:
+            # Need MFA Code
+            dialog = xbmcgui.Dialog ()
+            MFACode = dialog.input(__language__ (32013), type=xbmcgui.INPUT_ALPHANUM) or ""
+            del dialog
+
+        if loginCheckResult['data']['status'] == 0 or MFACode != '':
+            result = self.sessionAgent.get (self.authEndpointBase + '/login.php', headers = self.preAuthHeaders)
+            soup = BS (result.content.decode ('utf-8'), 'html.parser')
+            csrfToken = soup.find ('input', {'name' : 'alternativeCaptcha'})['value']
+
+            # combine login identity and CSRFToken to on-post data
+            data = {
+                'userid' : username,
+                'password' : password,
+                'autoLogin' : 'T',
+                'alternativeCaptcha' : csrfToken,
+            }
+            if MFACode != '':
+                data['twoStepAuth'] = MFACode
+
+            # Post Data and save session
+            result = self.sessionAgent.post (self.authEndpointBase + '/ajax/do_login.php', data, headers = self.authHeaders)
+            with open (self.storageDir + '/cookie', 'w') as handle:
+                cookieContent = json.dumps (requests.utils.dict_from_cookiejar (self.sessionAgent.cookies))
+                handle.write (cookieContent)
+                handle.close ()
+            return True
+
+        return False
 
     # show main menu
     def mainMenu (self) :
@@ -107,6 +173,10 @@ class GamerSession () :
         favoriteAnimes = xbmcgui.ListItem (label = __language__ (33002))
         url = '{0}?action=list_favor&page=1'.format (__url__)
         menuItems.append ((url, favoriteAnimes, True))
+
+        logoutItem = xbmcgui.ListItem (label = __language__ (33003))
+        url = '{0}?action=logout'.format (__url__)
+        menuItems.append ((url, logoutItem, True))
 
         xbmcplugin.addDirectoryItems (__handle__, menuItems, len (menuItems))
         xbmcplugin.endOfDirectory (__handle__)
@@ -340,15 +410,24 @@ class GamerSession () :
         thisAnime.setInfo ('video', {'title': name, 'genre': 'Animation'})
         xbmc.PlayList(1).add (endpoint, thisAnime)
 
+    def logout (self) :
+        __language__ = self.thisAddon.getLocalizedString
+
+        dialog = xbmcgui.Dialog ()
+        if dialog.yesno (__language__ (33003), __language__ (33012)) :
+            os.remove (self.storageDir + '/cookie')
+
 def router (paramString, session):
     # Check this session is available
-    params = dict (parse_qsl (paramString[1:]))
+    if session.refreshSession () is False :
+        loginComplete = session.login ()
+        if loginComplete == False or session.refreshSession () is False :
+            quit ()
 
+    params = dict (parse_qsl (paramString[1:]))
     # Check Action
     if params :
         action = params['action']
-        if session.refreshSession () is False :
-            quit ()
         if action == 'list_all' :
             session.allAnimes (params ['page'])
         elif action == 'list_favor' :
@@ -363,6 +442,8 @@ def router (paramString, session):
             session.play (params['sn'], params['name'])
         elif action == 'queue' :
             session.queue (params['sn'], params['name'])
+        elif action == 'logout' :
+            session.logout ()
     else :
         session.mainMenu ()
 
