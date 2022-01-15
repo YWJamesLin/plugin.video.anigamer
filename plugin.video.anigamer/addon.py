@@ -385,10 +385,10 @@ class GamerSession () :
         result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID, headers = self.headers)
         jsonData = result.json ()
 
-        src = "https://" + re.sub(r"([a-zA-Z]+:)?//", "", jsonData ['src'])
+        src = jsonData ['src']
         result = self.sessionAgent.get (src, headers = self.xhrHeaders)
         spstr = result.text.split ()
-        endpoint = '{0}/{1}|Origin={2}'.format (re.sub (r"\/index.+", "", src), spstr[-1], self.animeEndpointBase)
+        endpoint = '{0}/{1}|Origin={2}'.format (re.sub (r"\/(\w)+\.m3u8.+", "", src), spstr[-1], self.animeEndpointBase)
         thisAnime = xbmcgui.ListItem (label = name)
         thisAnime.setInfo ('video', {'title': name, 'genre': 'Animation'})
         xbmc.Player ().play (endpoint , thisAnime)
@@ -401,11 +401,11 @@ class GamerSession () :
         self.sessionAgent.get (self.animeEndpointBase + '/ajax/unlock.php?ttl=0&sn=' + sn, headers = self.xhrHeaders)
         result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID, headers = self.headers)
         jsonData = result.json ()
-        src = "https://" + re.sub(r"([a-zA-Z]+:)?//", "", jsonData ['src'])
 
-        result = self.sessionAgent.get (src)
+        src = jsonData ['src']
+        result = self.sessionAgent.get (src, headers = self.xhrHeaders)
         spstr = result.text.split ()
-        endpoint = '{0}/{1}|Origin={2}'.format (re.sub (r"\/index.+", "", src), spstr[-1], self.animeEndpointBase)
+        endpoint = '{0}/{1}|Origin={2}'.format (re.sub (r"\/(\w)+\.m3u8.+", "", src), spstr[-1], self.animeEndpointBase)
         thisAnime = xbmcgui.ListItem (label = name, path = endpoint)
         thisAnime.setInfo ('video', {'title': name, 'genre': 'Animation'})
         xbmc.PlayList(1).add (endpoint, thisAnime)
