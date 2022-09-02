@@ -54,24 +54,24 @@ class GamerSession () :
 
         # Create cookie storage directory
         self.headers = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
             'origin' : self.animeEndpointBase
         }
         self.preAuthHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
         }
         self.authHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
             'origin' : self.authEndpointBase,
             'referer' : self.authEndpointBase + '/login.php',
             'X-Requested-With': 'XMLHttpRequest',
         }
         self.updateSessionHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
             'referer' : self.gamerEndpointBase,
         }
         self.xhrHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
             'origin' : self.animeEndpointBase,
             'X-Requested-With': 'XMLHttpRequest',
         }
@@ -127,6 +127,9 @@ class GamerSession () :
         data = {
             'userid' : username,
         }
+        self.sessionAgent.cookies['_ga'] = '1'
+        self.sessionAgent.cookies['_gat'] = '1'
+        self.sessionAgent.cookies['_gid'] = '1'
         result = self.sessionAgent.post (self.apiEndpointBase + '/user/v1/login_precheck.php', data, headers = self.authHeaders)
         loginCheckResult = result.json ()
         if loginCheckResult['data']['status'] == 1:
