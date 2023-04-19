@@ -204,7 +204,7 @@ class GamerSession () :
             if nameBlock is None:
                 continue
             name = nameBlock.p.text
-            imageLink = imageBlock['src']
+            imageLink = imageBlock['data-src']
             sn = re.sub (r"a.+sn=", "", animeItem['href'])
             acgSnJS = FavoriteBlock['onclick']
             acgSnJS = re.sub (r",.+", "", acgSnJS)
@@ -248,7 +248,7 @@ class GamerSession () :
                 FavoriteBlock = animeItem.find ('div', { 'class' : 'btn-favorite' })
 
                 name = nameBlock.p.text
-                imageLink = imageBlock['src']
+                imageLink = imageBlock['data-src']
                 acgSnJS = FavoriteBlock['onclick']
                 acgSnJS = re.sub (r",.+", "", acgSnJS)
                 acgSn = re.sub (r"a.+\(", "", acgSnJS)
