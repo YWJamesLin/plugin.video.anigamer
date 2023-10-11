@@ -173,6 +173,10 @@ class GamerSession () :
         url = '{0}?action=list_all&page=1'.format (__url__)
         menuItems.append ((url, allAnimes, True))
 
+        searchAnimes = xbmcgui.ListItem (label = __language__ (33004))
+        url = '{0}?action=search_animes'.format (__url__)
+        menuItems.append ((url, searchAnimes, True))
+
         favoriteAnimes = xbmcgui.ListItem (label = __language__ (33002))
         url = '{0}?action=list_favor&page=1'.format (__url__)
         menuItems.append ((url, favoriteAnimes, True))
@@ -224,6 +228,53 @@ class GamerSession () :
         nextPageItem = xbmcgui.ListItem (label = __language__ (30004))
         url = "{0}?action=list_all&page={1}".format (__url__, int (page) + 1)
         menuItems.append ((url, nextPageItem, True))
+
+        xbmcplugin.addDirectoryItems (__handle__, menuItems, len (menuItems))
+        xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_NONE)
+        xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+        xbmcplugin.endOfDirectory (__handle__)
+
+    # search animes
+    def searchAnimes (self) :
+        __language__ = self.thisAddon.getLocalizedString
+
+        dialog = xbmcgui.Dialog ()
+        keyword = dialog.input(__language__ (32014)) or ""
+        del dialog
+        if keyword is '':
+            return
+
+        menuItems = []
+
+        result = self.sessionAgent.get (self.animeEndpointBase + '/search.php', params = { 'keyword' : keyword }, headers = self.headers)
+        soup = BS (result.content, 'html.parser')
+        animeGroup = soup.find ('div', {'class':'theme-list-block'})
+
+        # create anime list
+        for animeItem in animeGroup.find_all ('a', {'class': 'theme-list-main'}) :
+            imageBlock = animeItem.find ('img', { 'class' : 'theme-img lazyload' })
+            nameBlock = animeItem.find ('div', { 'class' : 'theme-info-block' })
+            FavoriteBlock = animeItem.find ('div', { 'class' : 'btn-favorite' })
+            isFavoriteBlock = animeItem.find ('div', { 'class' : 'btn-is-active' })
+
+            if nameBlock is None:
+                continue
+            name = nameBlock.p.text
+            imageLink = imageBlock['data-src']
+            sn = re.sub (r"a.+sn=", "", animeItem['href'])
+            acgSnJS = FavoriteBlock['onclick']
+            acgSnJS = re.sub (r",.+", "", acgSnJS)
+            acgSn = re.sub (r"a.+\(", "", acgSnJS)
+            menuItem = xbmcgui.ListItem (label = name)
+            menuItem.setArt ({'thumb': imageLink})
+            url = "{0}?action=anime_huei&sn={1}&link={2}".format (__url__, sn, imageLink)
+            if isFavoriteBlock is not None :
+                removeFavoriteUrl = "{0}?action=remove_from_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
+                menuItem.addContextMenuItems([(__language__ (30002), 'RunPlugin({0})'.format(removeFavoriteUrl))])
+            else :
+                addToFavoriteUrl = "{0}?action=add_to_favorite&sn={1}&animeSn={2}".format (__url__, acgSn, sn)
+                menuItem.addContextMenuItems([(__language__ (30001), 'RunPlugin({0})'.format(addToFavoriteUrl))])
+            menuItems.append ((url, menuItem, True))
 
         xbmcplugin.addDirectoryItems (__handle__, menuItems, len (menuItems))
         xbmcplugin.addSortMethod (__handle__, xbmcplugin.SORT_METHOD_NONE)
@@ -435,6 +486,8 @@ def router (paramString, session):
             session.allAnimes (params ['page'])
         elif action == 'list_favor' :
             session.favoriteAnimes (params ['page'])
+        elif action == 'search_animes' :
+            session.searchAnimes ()
         elif action == 'anime_huei' :
             session.animeHuei (params ['sn'], params ['link'])
         elif action == 'add_to_favorite' :

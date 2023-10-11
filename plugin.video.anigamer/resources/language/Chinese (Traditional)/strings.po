@@ -52,6 +52,10 @@ msgctxt "#32013"
 msgid "input_mfa_code"
 msgstr "請輸入二階段驗證碼"
 
+msgctxt "#32014"
+msgid "input_keyword"
+msgstr "請輸入關鍵字"
+
 msgctxt "#33001"
 msgid "all_animes"
 msgstr "所有動畫"
@@ -63,6 +67,10 @@ msgstr "我的最愛"
 msgctxt "#33003"
 msgid "logout"
 msgstr "登出"
+
+msgctxt "#33004"
+msgid "search"
+msgstr "搜尋"
 
 msgctxt "#33012"
 msgid "logoutConfirm"
