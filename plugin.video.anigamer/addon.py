@@ -54,24 +54,24 @@ class GamerSession () :
 
         # Create cookie storage directory
         self.headers = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
             'origin' : self.animeEndpointBase
         }
         self.preAuthHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
         }
         self.authHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
             'origin' : self.authEndpointBase,
             'referer' : self.authEndpointBase + '/login.php',
             'X-Requested-With': 'XMLHttpRequest',
         }
         self.updateSessionHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
             'referer' : self.gamerEndpointBase,
         }
         self.xhrHeaders = {
-            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+            'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36',
             'origin' : self.animeEndpointBase,
             'X-Requested-With': 'XMLHttpRequest',
         }
@@ -432,14 +432,15 @@ class GamerSession () :
     # create video link and play on kodi
     def play (self, sn, name) :
         result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/getdeviceid.php', headers = self.headers)
+        result.encoding = 'utf-8-sig'
         jsonData = result.json ()
         deviceID = jsonData['deviceid']
 
         self.sessionAgent.get (self.animeEndpointBase + '/ajax/unlock.php?ttl=0&sn=' + sn, headers = self.xhrHeaders)
-        result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID, headers = self.headers)
+        result = self.sessionAgent.get (self.apiEndpointBase + '/anime/v1/video_src.php?deviceTypeUseCases=1&videoSn=' + sn + '&deviceid=' + deviceID, headers = self.xhrHeaders)
         jsonData = result.json ()
 
-        src = jsonData ['src']
+        src = jsonData ['data']['srcUseCases'][0]['src']['playlist']
         result = self.sessionAgent.get (src, headers = self.xhrHeaders)
         spstr = result.text.split ()
         endpoint = '{0}/{1}|Origin={2}'.format (re.sub (r"\/(\w)+\.m3u8.+", "", src), spstr[-1], self.animeEndpointBase)
@@ -449,14 +450,15 @@ class GamerSession () :
 
     def queue (self, sn, name) :
         result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/getdeviceid.php', headers = self.headers)
+        result.encoding = 'utf-8-sig'
         jsonData = result.json ()
         deviceID = jsonData['deviceid']
 
         self.sessionAgent.get (self.animeEndpointBase + '/ajax/unlock.php?ttl=0&sn=' + sn, headers = self.xhrHeaders)
-        result = self.sessionAgent.get (self.animeEndpointBase + '/ajax/m3u8.php?sn=' + sn + '&device=' + deviceID, headers = self.headers)
+        result = self.sessionAgent.get (self.apiEndpointBase + '/anime/v1/video_src.php?deviceTypeUseCases=1&videoSn=' + sn + '&deviceid=' + deviceID, headers = self.xhrHeaders)
         jsonData = result.json ()
 
-        src = jsonData ['src']
+        src = jsonData ['data']['srcUseCases'][0]['src']['playlist']
         result = self.sessionAgent.get (src, headers = self.xhrHeaders)
         spstr = result.text.split ()
         endpoint = '{0}/{1}|Origin={2}'.format (re.sub (r"\/(\w)+\.m3u8.+", "", src), spstr[-1], self.animeEndpointBase)
